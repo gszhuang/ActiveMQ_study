@@ -36,7 +36,7 @@ import org.apache.activemq.command.*;
  *        under src/gram/script and then use maven openwire:generate to regenerate 
  *        this file.
  *
- * 
+ * 连接信息对应的装配器，用于序列化和反序列化
  */
 public class ConnectionInfoMarshaller extends BaseCommandMarshaller {
 

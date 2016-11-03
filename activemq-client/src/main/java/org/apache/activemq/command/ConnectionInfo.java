@@ -21,7 +21,7 @@ import org.apache.activemq.state.CommandVisitor;
 /**
  *
  * @openwire:marshaller code="3"
- *
+ * 连接信息
  */
 public class ConnectionInfo extends BaseCommand {
 

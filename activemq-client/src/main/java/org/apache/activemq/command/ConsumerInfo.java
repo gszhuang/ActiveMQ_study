@@ -27,7 +27,7 @@ import org.apache.activemq.state.CommandVisitor;
 
 /**
  * @openwire:marshaller code="5"
- *
+ *消费者信息
  */
 public class ConsumerInfo extends BaseCommand implements TransientInitializer {
 

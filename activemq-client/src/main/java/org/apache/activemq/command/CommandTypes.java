@@ -19,7 +19,7 @@ package org.apache.activemq.command;
 /**
  * Holds the command id constants used by the command objects.
  *
- *
+ *命令类型
  */
 public interface CommandTypes {
 

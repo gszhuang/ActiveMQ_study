@@ -36,7 +36,8 @@ import org.apache.activemq.command.*;
  *        under src/gram/script and then use maven openwire:generate to regenerate 
  *        this file.
  *
- * 
+ * 每一个Command消息都对应一个CommandMarshal类，用于从Command类序列化到字节写入以及字节如何反序列化转成Command类的
+ * 序列化和反序列化又分为两种，一种是tight一种是loose，tight会针对cpu来进行优化，先写入大小，在写入具体数据，而loose方式则直接写入数据
  */
 public abstract class BaseCommandMarshaller extends BaseDataStreamMarshaller {
 

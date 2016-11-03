@@ -17,7 +17,7 @@
 package org.apache.activemq.command;
 
 /**
- * 
+ * 数据结构接口
  */
 public interface DataStructure {
     
