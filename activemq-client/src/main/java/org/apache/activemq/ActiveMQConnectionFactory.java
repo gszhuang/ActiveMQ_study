@@ -310,6 +310,8 @@ public class ActiveMQConnectionFactory extends JNDIBaseStorable implements Conne
      *
      * @return The newly created Transport.
      * @throws JMSException If unable to create trasnport.
+     * 
+     * 简单工厂模式，根据url的scheme头来区分使用哪种通信协议：auto->tcp, auto+ssl -> ssl, auto+nio -> nio, auto+nio+ssl -> nio+ssl
      */
     protected Transport createTransport() throws JMSException {
         try {
@@ -336,6 +338,7 @@ public class ActiveMQConnectionFactory extends JNDIBaseStorable implements Conne
 
     /**
      * @return Returns the Connection.
+     * 创建链接
      */
     protected ActiveMQConnection createActiveMQConnection(String userName, String password) throws JMSException {
         if (brokerURL == null) {
@@ -343,6 +346,7 @@ public class ActiveMQConnectionFactory extends JNDIBaseStorable implements Conne
         }
         ActiveMQConnection connection = null;
         try {
+        	//先创建Transport对象， ActiveMQConnection装饰Transport
             Transport transport = createTransport();
             connection = createActiveMQConnection(transport, factoryStats);
 

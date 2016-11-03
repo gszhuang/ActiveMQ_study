@@ -138,6 +138,8 @@ public class IdGenerator {
      * Generate a unique id
      *
      * @return a unique id
+     * 
+     * synchronized, 借助AtomicLong getAndIncrement()生成唯一序列号  
      */
     public synchronized String generateId() {
         StringBuilder sb = new StringBuilder(length);

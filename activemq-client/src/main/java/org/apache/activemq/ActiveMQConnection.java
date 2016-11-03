@@ -13,6 +13,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * 
+ * 连接类，多种交互协议，默认tcp
  */
 package org.apache.activemq;
 
@@ -227,6 +229,7 @@ public class ActiveMQConnection implements Connection, TopicConnection, QueueCon
 
         // Configure a single threaded executor who's core thread can timeout if
         // idle
+        //i： 核心线程数量   j： 最大线程数
         executor = new ThreadPoolExecutor(1, 1, 5, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -237,6 +240,7 @@ public class ActiveMQConnection implements Connection, TopicConnection, QueueCon
             }
         });
         // asyncConnectionThread.allowCoreThreadTimeOut(true);
+        //唯一id
         String uniqueId = connectionIdGenerator.generateId();
         this.info = new ConnectionInfo(new ConnectionId(uniqueId));
         this.info.setManageable(true);

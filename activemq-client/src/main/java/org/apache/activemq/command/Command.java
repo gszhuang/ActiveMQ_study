@@ -21,6 +21,10 @@ import org.apache.activemq.state.CommandVisitor;
 /**
  * The Command Pattern so that we can send and receive commands on the different
  * transports
+ * 
+ * ActiveMQ中把所有的消息交互的内容都叫做Command，每条消息对应一个Command，
+ * 例如客户端刚连接到broker，broker会发送一个BrokerInfo信息到客户端，
+ * 接着客户端会发送ConnectionInfo连接信息、ProducerInfo生产者信息等等到服务端
  */
 public interface Command extends DataStructure {
 

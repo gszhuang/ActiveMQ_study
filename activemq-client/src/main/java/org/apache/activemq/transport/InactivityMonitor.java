@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Used to make sure that commands are arriving periodically from the peer of
  * the transport.
+ * 连接成功后启动心跳检查机制，客户端每10秒发送一次心跳信息，服务端每30秒读一次心跳信息，如果没有读到则会断开连接，心跳检测是相互的，客户端也会每30秒读取服务端发送来的心跳信息，如果没有读到也一样会断开连接。
  */
 public class InactivityMonitor extends AbstractInactivityMonitor {
 

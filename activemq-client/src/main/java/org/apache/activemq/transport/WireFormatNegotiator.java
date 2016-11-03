@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Negotiates the wire format with a new connection
+ * 在客户端连接broker的时候先发送数据解析相关的协议信息，例如解析版本号，是否使用缓存等信息。
  */
 public class WireFormatNegotiator extends TransportFilter {
 

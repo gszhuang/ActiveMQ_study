@@ -21,6 +21,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Thread safe Transport Filter that serializes calls to and from the Transport Stack.
+ * 
+ * 线程安全的Transport，同一时间只允许从栈里面发送一个请求，借助的是一个可重入锁。
  */
 public class MutexTransport extends TransportFilter {
 
