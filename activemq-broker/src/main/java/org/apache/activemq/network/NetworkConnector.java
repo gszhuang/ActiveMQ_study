@@ -45,6 +45,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Connector class for bridging broker networks.
+ * 
+ * 用于管理NetworkBridge
  */
 public abstract class NetworkConnector extends NetworkBridgeConfiguration implements Service {
 
@@ -126,6 +128,7 @@ public abstract class NetworkConnector extends NetworkBridgeConfiguration implem
     // Implementation methods
     // -------------------------------------------------------------------------
     protected NetworkBridge configureBridge(DemandForwardingBridgeSupport result) {
+    	//获取动态激活destination列表、静态激活destination列表、不激活destination列表  
         List<ActiveMQDestination> destsList = getDynamicallyIncludedDestinations();
         ActiveMQDestination dests[] = destsList.toArray(new ActiveMQDestination[destsList.size()]);
         result.setDynamicallyIncludedDestinations(dests);

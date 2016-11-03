@@ -181,16 +181,19 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
 
     @Override
     public void start() throws Exception {
+    	//确保没有启动
         if (started.compareAndSet(false, true)) {
 
             if (brokerService == null) {
                 throw new IllegalArgumentException("BrokerService is null on " + this);
             }
 
+            //是否允许静态连接，即networkconnector配置中的staticBridge配置项 
             networkBridgeStatistics.setEnabled(brokerService.isEnableStatistics());
-
+            //是否是双向通讯  
             if (isDuplex()) {
                 duplexInboundLocalBroker = NetworkBridgeFactory.createLocalTransport(brokerService.getBroker());
+                //设置双向通信broker的监听器，自定义
                 duplexInboundLocalBroker.setTransportListener(new DefaultTransportListener() {
 
                     @Override
@@ -207,6 +210,7 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                 duplexInboundLocalBroker.start();
             }
 
+            //设置本地broker的监听器
             localBroker.setTransportListener(new DefaultTransportListener() {
 
                 @Override
@@ -225,6 +229,7 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                 }
             });
 
+            //设置远程broker的监听器
             remoteBroker.setTransportListener(new DefaultTransportListener() {
 
                 @Override
@@ -242,7 +247,7 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                     serviceRemoteException(error);
                 }
             });
-
+            //分别启动localBroker和remoteBroker  
             remoteBroker.start();
             localBroker.start();
 
@@ -636,8 +641,10 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
     }
 
     protected void serviceRemoteCommand(Command command) {
+    	//broker是否已释放
         if (!disposed.get()) {
             try {
+            	//是否需要分发消息  
                 if (command.isMessageDispatch()) {
                     safeWaitUntilStarted();
                     MessageDispatch md = (MessageDispatch) command;
@@ -676,19 +683,24 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                     ConnectionError ce = (ConnectionError) command;
                     serviceRemoteException(ce.getException());
                 } else {
+                	//是否是双向发送  
                     if (isDuplex()) {
                         LOG.trace("{} duplex command type: {}", configuration.getBrokerName(), command.getDataStructureType());
+                        //是否是消息
                         if (command.isMessage()) {
                             final ActiveMQMessage message = (ActiveMQMessage) command;
+                            //是否符合过滤规则 
                             if (NetworkBridgeFilter.isAdvisoryInterpretedByNetworkBridge(message)) {
                                 serviceRemoteConsumerAdvisory(message.getDataStructure());
                                 ackAdvisory(message);
                             } else {
+                            	//如果不能允许连接的destination则直接返回
                                 if (!isPermissableDestination(message.getDestination(), true)) {
                                     return;
                                 }
                                 // message being forwarded - we need to
                                 // propagate the response to our local send
+                                // 如果是双向传递消息的，异步发送消息后需要远端broker返回其相关信息
                                 if (canDuplexDispatch(message)) {
                                     message.setProducerId(duplexInboundLocalProducerInfo.getProducerId());
                                     if (message.isResponseRequired() || configuration.isAlwaysSyncSend()) {
@@ -713,6 +725,7 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                                         duplexInboundLocalBroker.oneway(message);
                                         networkBridgeStatistics.getReceivedCount().increment();
                                     }
+                                    //保存当前消息 
                                     serviceInboundMessage(message);
                                 } else {
                                     if (message.isResponseRequired() || configuration.isAlwaysSyncSend()) {
@@ -723,6 +736,7 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                                 }
                             }
                         } else {
+                        	//分别根据当前消息的类型是否是连接消息类型、session消息类型、生产者消息类型、确认消息类型、消费者消息类型、关闭消息类型进行处理
                             switch (command.getDataStructureType()) {
                                 case ConnectionInfo.DATA_STRUCTURE_TYPE:
                                     if (duplexInitiatingConnection != null && duplexInitiatingConnectionInfoReceived.compareAndSet(false, true)) {
@@ -739,6 +753,7 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                                     // using duplexInboundLocalProducerInfo
                                     break;
                                 case MessageAck.DATA_STRUCTURE_TYPE:
+                                	//如果是远端传来的确认消息类型消息则进行确认
                                     MessageAck ack = (MessageAck) command;
                                     DemandSubscription localSub = subscriptionMapByRemoteId.get(ack.getConsumerId());
                                     if (localSub != null) {
@@ -749,6 +764,7 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                                     }
                                     break;
                                 case ConsumerInfo.DATA_STRUCTURE_TYPE:
+                                	//添加消费者信息
                                     localStartedLatch.await();
                                     if (started.get()) {
                                         addConsumerInfo((ConsumerInfo) command);
@@ -1046,12 +1062,17 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
     }
 
     protected void serviceLocalCommand(Command command) {
+    	//是否已释放
         if (!disposed.get()) {
             try {
+            	//是否是MessageDispatch类型的command
                 if (command.isMessageDispatch()) {
+                	//本地broker启动后再往下执行  
                     safeWaitUntilStarted();
+                    //入队计数＋1
                     networkBridgeStatistics.getEnqueues().increment();
                     final MessageDispatch md = (MessageDispatch) command;
+                    //获取消息的订阅者  
                     final DemandSubscription sub = subscriptionMapByLocalId.get(md.getConsumerId());
                     if (sub != null && md.getMessage() != null && sub.incrementOutstandingResponses()) {
 
@@ -1061,6 +1082,7 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                             });
                             // still ack as it may be durable
                             try {
+                            	//oneway的方式发送需要确认消息
                                 localBroker.oneway(new MessageAck(md, MessageAck.INDIVIDUAL_ACK_TYPE, 1));
                             } finally {
                                 sub.decrementOutstandingResponses();
@@ -1072,6 +1094,7 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                         LOG.debug("bridging ({} -> {}), consumer: {}, destination: {}, brokerPath: {}, message: {}", new Object[]{
                                 configuration.getBrokerName(), remoteBrokerName, md.getConsumerId(), message.getDestination(), Arrays.toString(message.getBrokerPath()), (LOG.isTraceEnabled() ? message : message.getMessageId())
                         });
+                      //是否是双向的broker和符合配置的过滤规则 
                         if (isDuplex() && NetworkBridgeFilter.isAdvisoryInterpretedByNetworkBridge(message)) {
                             try {
                                 // never request b/c they are eventually                     acked async
@@ -1082,11 +1105,13 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                             return;
                         }
                         if (isPermissableDestination(md.getDestination())) {
+                        	//消息是否是可持久化的或者同步发送的  
                            if (message.isPersistent() || configuration.isAlwaysSyncSend()) {
 
                               // The message was not sent using async send, so we should only
                               // ack the local broker when we get confirmation that the remote
                               // broker has received the message.
+                        	  // 消息不是用异步方式发送的，所以我们只能当我们获得远端broker已经确认消息的讯息时才能在本地做确认操作，所以这里使用异步请求 
                               remoteBroker.asyncRequest(message, new ResponseCallback() {
                                  @Override
                                  public void onCompletion(FutureResponse future) {
@@ -1111,6 +1136,7 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                               // If the message was originally sent using async send, we will
                               // preserve that QOS by bridging it using an async send (small chance
                               // of message loss).
+                        	  // 如果消息是异步发送的我们只能通过使用异步发送来传递消息以保证消息传递的可靠性（小概率丢失消息），所以这里使用同步请求  
                               try {
                                  remoteBroker.oneway(message);
                                  localBroker.oneway(new MessageAck(md, MessageAck.INDIVIDUAL_ACK_TYPE, 1));
@@ -1119,6 +1145,7 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                                  sub.decrementOutstandingResponses();
                               }
                            }
+                           //销毁消息
                            serviceOutbound(message);
                         }
                     } else {

@@ -22,6 +22,7 @@ import org.apache.activemq.Service;
 
 /**
  * Represents a network bridge interface
+ * 主要作用就是根据本地配置讯息发送本地broker的相关讯息到远端broker，从远端broker接收消息做对应处理
  */
 public interface NetworkBridge extends Service {
 
