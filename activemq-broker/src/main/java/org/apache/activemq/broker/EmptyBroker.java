@@ -50,7 +50,7 @@ import org.apache.activemq.usage.Usage;
 /**
  * Dumb implementation - used to be overriden by listeners
  *
- *
+ * 空broker，往往用来被listeners覆盖
  */
 public class EmptyBroker implements Broker {
 

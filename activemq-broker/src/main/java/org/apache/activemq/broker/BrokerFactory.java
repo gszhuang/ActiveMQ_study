@@ -27,7 +27,7 @@ import org.apache.activemq.util.IOExceptionSupport;
  * list of currently supported URI syntaxes is described <a
  * href="http://activemq.apache.org/how-do-i-embed-a-broker-inside-a-connection.html">here</a>
  * 
- * 
+ * broker工厂(抽象工厂模式)
  */
 public final class BrokerFactory {
 
@@ -67,7 +67,9 @@ public final class BrokerFactory {
         if (brokerURI.getScheme() == null) {
             throw new IllegalArgumentException("Invalid broker URI, no scheme specified: " + brokerURI);
         }
+        //先创建不同的工厂实例
         BrokerFactoryHandler handler = createBrokerFactoryHandler(brokerURI.getScheme());
+        //利用工厂handler创建broker（产品）
         BrokerService broker = handler.createBroker(brokerURI);
         if (startBroker) {
             broker.start();

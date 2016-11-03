@@ -30,6 +30,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Holds internal state in the broker for a MessageProducer
+ * 
+ * 控制producer 流状态，跟踪记录
  */
 public class ProducerBrokerExchange {
 

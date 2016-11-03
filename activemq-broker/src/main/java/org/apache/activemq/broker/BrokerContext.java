@@ -21,7 +21,7 @@ import java.util.Map;
 /**
  * 
  * Provide context object for broker classes
- *
+ * 上下文环境
  */
 public interface BrokerContext {
 

@@ -36,6 +36,7 @@ import org.apache.activemq.transport.tcp.SslTransportFactory;
  * fact, if the URI passed to this class does not have an "ssl" scheme, this
  * class will pass all work on to its superclass.
  * 
+ *  在创建连接时提供ssl安全链接
  * @author sepandm@gmail.com (Sepand)
  */
 public class SslBrokerService extends BrokerService {

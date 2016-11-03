@@ -43,12 +43,14 @@ import org.apache.activemq.usage.Usage;
 /**
  * The Message Broker which routes messages, maintains subscriptions and
  * connections, acknowledges messages and handles transactions.
+ * 
+ * 定义了一些获取broker本身相关信息，添加connection、destination、session、消息生产者、控制事务的接口
  */
 public interface Broker extends Region, Service {
 
     /**
      * Get a Broker from the Broker Stack that is a particular class
-     *
+     * 从broker堆栈中获取一个特定类型的broker
      * @param type
      * @return a Broker instance.
      */
@@ -61,17 +63,19 @@ public interface Broker extends Region, Service {
 
     /**
      * Get the name of the broker
+     * 获取broker的名称
      */
     String getBrokerName();
 
     /**
      * A remote Broker connects
+     * 向connection中添加borker信息
      */
     void addBroker(Connection connection, BrokerInfo info);
 
     /**
      * Remove a BrokerInfo
-     *
+     * 从connection中删除某个broker信息
      * @param connection
      * @param info
      */
@@ -79,7 +83,7 @@ public interface Broker extends Region, Service {
 
     /**
      * A client is establishing a connection with the broker.
-     *
+     * client正与broker建立连接
      * @throws Exception TODO
      */
     void addConnection(ConnectionContext context, ConnectionInfo info) throws Exception;
@@ -182,7 +186,7 @@ public interface Broker extends Region, Service {
 
     /**
      * Rollsback a transaction.
-     *
+     * 回滚事务
      * @param context
      * @param xid
      * @throws Exception TODO
@@ -191,7 +195,7 @@ public interface Broker extends Region, Service {
 
     /**
      * Commits a transaction.
-     *
+     * 提交事务
      * @param context
      * @param xid
      * @param onePhase

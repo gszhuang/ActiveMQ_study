@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * broker注册中心，单例模式实现，负责维护所有BrokerSerevice，完成获取、绑定和解绑等操作。
  * 
  */
 public class BrokerRegistry {
@@ -31,6 +32,7 @@ public class BrokerRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(BrokerRegistry.class);
     private static final BrokerRegistry INSTANCE = new BrokerRegistry();
 
+    //一个互斥信号量mutex和一个保存所有BrokerService的map brokers。
     private final Object mutex = new Object();
     private final Map<String, BrokerService> brokers = new HashMap<String, BrokerService>();
 

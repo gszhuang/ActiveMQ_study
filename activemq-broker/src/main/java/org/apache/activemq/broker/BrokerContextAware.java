@@ -19,7 +19,7 @@ package org.apache.activemq.broker;
 /**
  * 
  * Interface to be implemented by any object that wishes to have instance of @see BrokerContext
- *
+ * 获取上下文环境接口
  */
 public interface BrokerContextAware {
 

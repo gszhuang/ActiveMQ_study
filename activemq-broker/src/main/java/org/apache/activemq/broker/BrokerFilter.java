@@ -50,7 +50,7 @@ import org.apache.activemq.usage.Usage;
  * Allows you to intercept broker operation so that features such as security
  * can be implemented as a pluggable filter.
  *
- *
+ * 实现Broker接口，用户可以在broker的操作前后加入一些自己的逻辑以实现像安全这样的逻辑
  */
 public class BrokerFilter implements Broker {
 

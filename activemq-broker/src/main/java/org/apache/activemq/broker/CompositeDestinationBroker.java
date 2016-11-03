@@ -30,7 +30,7 @@ import org.apache.activemq.command.ProducerInfo;
  * the client has to expect many more messages to be dispatched than the
  * pre-fetch setting allows.
  * 
- * 
+ * 多目的地Broker，Producer可以通过它将生产的消息传给多个destination
  */
 public class CompositeDestinationBroker extends BrokerFilter {
 
@@ -41,6 +41,7 @@ public class CompositeDestinationBroker extends BrokerFilter {
     /**
      * A producer may register to send to multiple destinations via a composite
      * destination.
+     * 注册producer到多个目的地
      */
     public void addProducer(ConnectionContext context, ProducerInfo info) throws Exception {
         // The destination may be null.

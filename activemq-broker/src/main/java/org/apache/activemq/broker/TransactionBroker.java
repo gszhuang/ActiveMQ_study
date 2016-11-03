@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
  * This broker filter handles the transaction related operations in the Broker
  * interface.
  * 
- * 
+ * 为broker的每个方法提供分布式事务XA支持
  */
 public class TransactionBroker extends BrokerFilter {
 

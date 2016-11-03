@@ -49,6 +49,7 @@ public class FactoryFinder {
 
     /**
      * The default implementation of Object factory which works well in standalone applications.
+     * 
      */
     protected static class StandaloneObjectFactory implements ObjectFactory {
         final ConcurrentMap<String, Class> classMap = new ConcurrentHashMap<String, Class>();
