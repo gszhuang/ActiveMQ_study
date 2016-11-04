@@ -880,20 +880,25 @@ public class ActiveMQSession implements Session, QueueSession, TopicSession, Sta
     @Override
     public void run() {
         MessageDispatch messageDispatch;
+        //队首消息出队列
         while ((messageDispatch = executor.dequeueNoWait()) != null) {
             final MessageDispatch md = messageDispatch;
             final ActiveMQMessage message = (ActiveMQMessage)md.getMessage();
 
             MessageAck earlyAck = null;
+            //如果消息过期创建新的确认消息
             if (message.isExpired()) {
                 earlyAck = new MessageAck(md, MessageAck.EXPIRED_ACK_TYPE, 1);
                 earlyAck.setFirstMessageId(message.getMessageId());
-            } else if (connection.isDuplicate(ActiveMQSession.this, message)) {
+            }
+            //消息重复
+            else if (connection.isDuplicate(ActiveMQSession.this, message)) {
                 LOG.debug("{} got duplicate: {}", this, message.getMessageId());
                 earlyAck = new MessageAck(md, MessageAck.POSION_ACK_TYPE, 1);
                 earlyAck.setFirstMessageId(md.getMessage().getMessageId());
                 earlyAck.setPoisonCause(new Throwable("Duplicate delivery to " + this));
             }
+            //如果消息已经过期，或者消息有冲突则发送确认消息重新开始while循环
             if (earlyAck != null) {
                 try {
                     asyncSendPacket(earlyAck);
@@ -905,6 +910,7 @@ public class ActiveMQSession implements Session, QueueSession, TopicSession, Sta
                 }
             }
 
+            //如果是确认模式是CLIENT_ACKNOWLEDGE或者INDIVIDUAL_ACKONWLEDGE则设置空回调函数，这样consumer确认消息后会执行回调函数 
             if (isClientAcknowledge()||isIndividualAcknowledge()) {
                 message.setAcknowledgeCallback(new Callback() {
                     @Override
@@ -913,6 +919,7 @@ public class ActiveMQSession implements Session, QueueSession, TopicSession, Sta
                 });
             }
 
+            //在发送前调用处理函数 
             if (deliveryListener != null) {
                 deliveryListener.beforeDelivery(this, message);
             }
@@ -926,13 +933,17 @@ public class ActiveMQSession implements Session, QueueSession, TopicSession, Sta
             /*
             * The redelivery guard is to allow the endpoint lifecycle to complete before the messsage is dispatched.
             * We dont want the after deliver being called after the redeliver as it may cause some weird stuff.
+            * 
+            * redelivery guard是用来允许endpoint生命周期在消息被分发之前结束。 以免消息被分发后deliver被调用引起一些异常情况
             * */
             synchronized (redeliveryGuard) {
                 try {
                     ack.setFirstMessageId(md.getMessage().getMessageId());
+                    //如果是事务模式则开启事务
                     doStartTransaction();
                     ack.setTransactionId(getTransactionContext().getTransactionId());
                     if (ack.getTransactionId() != null) {
+                    	//事务状态下添加一个匿名同步器，用于处理同步事务比如回滚
                         getTransactionContext().addSynchronization(new Synchronization() {
 
                             final int clearRequestCount = (clearRequestsCounter.get() == Integer.MAX_VALUE ? clearRequestsCounter.incrementAndGet() : clearRequestsCounter.get());
@@ -1899,56 +1910,74 @@ public class ActiveMQSession implements Session, QueueSession, TopicSession, Sta
     protected void send(ActiveMQMessageProducer producer, ActiveMQDestination destination, Message message, int deliveryMode, int priority, long timeToLive,
                         MemoryUsage producerWindow, int sendTimeout, AsyncCallback onComplete) throws JMSException {
 
+    	//检查session状态如果closed抛出状态异常
         checkClosed();
         if (destination.isTemporary() && connection.isDeleted(destination)) {
             throw new InvalidDestinationException("Cannot publish to a deleted Destination: " + destination);
         }
+        //竞争锁（互斥信号量），如果一个session的多个producer发送消息这里会保证有序性
         synchronized (sendMutex) {
             // tell the Broker we are about to start a new transaction
+        	//告诉broker开始一个新事务，只有session的确认模式是SESSION_TRANSACTED时事务上下文才会开启事务
             doStartTransaction();
+            //从事务上下文中获取事务id
             TransactionId txid = transactionContext.getTransactionId();
             long sequenceNumber = producer.getMessageSequence();
 
             //Set the "JMS" header fields on the original message, see 1.1 spec section 3.4.11
+            //在jms协议头中设置传输模式即消息是否需要持久化   1.不持久化  2持久化
             message.setJMSDeliveryMode(deliveryMode);
             long expiration = 0L;
+            //检查producer中的message是否过期
             if (!producer.getDisableMessageTimestamp()) {
                 long timeStamp = System.currentTimeMillis();
                 message.setJMSTimestamp(timeStamp);
+                //设置消息过期时间
                 if (timeToLive > 0) {
                     expiration = timeToLive + timeStamp;
                 }
             }
             message.setJMSExpiration(expiration);
+            //设置消息优先级
             message.setJMSPriority(priority);
+            //不重复发送消息
             message.setJMSRedelivered(false);
 
             // transform to our own message format here
+            // 消息格式转换为ActvieMq自己的格式
             ActiveMQMessage msg = ActiveMQMessageTransformation.transformMessage(message, connection);
+            //设置目的地，这里是一个topic
             msg.setDestination(destination);
             msg.setMessageId(new MessageId(producer.getProducerInfo().getProducerId(), sequenceNumber));
 
             // Set the message id.
+            //如果消息是经过转换的，那么原消息更新新的id 
             if (msg != message) {
                 message.setJMSMessageID(msg.getMessageId().toString());
                 // Make sure the JMS destination is set on the foreign messages too.
                 message.setJMSDestination(destination);
             }
             //clear the brokerPath in case we are re-sending this message
+            //清除brokerpath 
             msg.setBrokerPath(null);
-
+            //设置事务id 
             msg.setTransactionId(txid);
             if (connection.isCopyMessageOnSend()) {
                 msg = (ActiveMQMessage)msg.copy();
             }
+            //设置连接器
             msg.setConnection(connection);
+            //把消息的属性和消息体都设置为只读，防止被修改
             msg.onSend();
+            //设置生产者id
             msg.setProducerId(msg.getMessageId().getProducerId());
             if (LOG.isTraceEnabled()) {
                 LOG.trace(getSessionId() + " sending message: " + msg);
             }
+            //如果onComplete没设置，且发送超时时间小于0，且消息不需要反馈，且连接器不是同步发送模式，且（消息非持久化或者连接器是异步发送模式或者存在事务id的情况下）异步发送，否则同步发送
             if (onComplete==null && sendTimeout <= 0 && !msg.isResponseRequired() && !connection.isAlwaysSyncSend() && (!msg.isPersistent() || connection.isUseAsyncSend() || txid != null)) {
-                this.connection.asyncSendPacket(msg);
+                //异步发送走transport的oneway通道
+            	this.connection.asyncSendPacket(msg);
                 if (producerWindow != null) {
                     // Since we defer lots of the marshaling till we hit the
                     // wire, this might not
@@ -1961,13 +1990,14 @@ public class ActiveMQSession implements Session, QueueSession, TopicSession, Sta
                     producerWindow.increaseUsage(size);
                 }
             } else {
+            	//同步发送走transport的request和asyncrequest通道
                 if (sendTimeout > 0 && onComplete==null) {
                     this.connection.syncSendPacket(msg,sendTimeout);
                 }else {
                     this.connection.syncSendPacket(msg, onComplete);
                 }
             }
-
+            //消息被同步或异步的方式发送到了broker的topic中
         }
     }
 

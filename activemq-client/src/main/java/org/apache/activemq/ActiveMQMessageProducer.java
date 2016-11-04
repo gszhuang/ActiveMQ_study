@@ -69,6 +69,8 @@ import org.slf4j.LoggerFactory;
  * @see javax.jms.TopicPublisher
  * @see javax.jms.QueueSender
  * @see javax.jms.Session#createProducer
+ * 
+ * 消息生产者
  */
 public class ActiveMQMessageProducer extends ActiveMQMessageProducerSupport implements StatsCapable, Disposable {
 
@@ -250,7 +252,8 @@ public class ActiveMQMessageProducer extends ActiveMQMessageProducerSupport impl
     }
 
     public void send(Destination destination, Message message, int deliveryMode, int priority, long timeToLive, AsyncCallback onComplete) throws JMSException {
-        checkClosed();
+        //检查session状态，如果session已关闭则抛出状态异常
+    	checkClosed();
         if (destination == null) {
             if (info.getDestination() == null) {
                 throw new UnsupportedOperationException("A destination must be specified.");
@@ -258,6 +261,7 @@ public class ActiveMQMessageProducer extends ActiveMQMessageProducerSupport impl
             throw new InvalidDestinationException("Don't understand null destinations");
         }
 
+        //检查destination类型，如果不符合要求就转变成ActiveMQDestination
         ActiveMQDestination dest;
         if (destination.equals(info.getDestination())) {
             dest = (ActiveMQDestination)destination;
@@ -271,6 +275,7 @@ public class ActiveMQMessageProducer extends ActiveMQMessageProducerSupport impl
         }
 
         if (transformer != null) {
+        	//把各种不同的message转换成ActiveMQMessage
             Message transformedMessage = transformer.producerTransform(session, this, message);
             if (transformedMessage != null) {
                 message = transformedMessage;
@@ -284,9 +289,10 @@ public class ActiveMQMessageProducer extends ActiveMQMessageProducerSupport impl
                 throw new JMSException("Send aborted due to thread interrupt.");
             }
         }
-
+        
+        //发送消息到broker中的topic
         this.session.send(this, dest, message, deliveryMode, priority, timeToLive, producerWindow, sendTimeout, onComplete);
-
+        //消息计数 
         stats.onMessage();
     }
 

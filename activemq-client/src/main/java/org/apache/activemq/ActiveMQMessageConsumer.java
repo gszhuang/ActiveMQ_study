@@ -435,13 +435,16 @@ public class ActiveMQMessageConsumer implements MessageAvailableConsumer, StatsC
         }
         if (listener != null) {
             boolean wasRunning = session.isRunning();
+            //没有设置listener，则停止session线程
             if (wasRunning) {
                 session.stop();
             }
 
             this.messageListener.set(listener);
+            
+            //session重新分发未消费的message
             session.redispatch(this, unconsumedMessages);
-
+            //开启session线程
             if (wasRunning) {
                 session.start();
             }
